@@ -45,4 +45,10 @@ public class Usuario {
 
     @Column(length = 300)
     private String direccion;
+
+    @Column(length = 25)
+    private String telefono;
+
+    @Column(nullable = false)
+    private boolean activo = true;
 }

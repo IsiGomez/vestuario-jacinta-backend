@@ -9,12 +9,21 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ErrorResponse> estadoHttp(ResponseStatusException ex) {
+        int status = ex.getStatusCode().value();
+        String mensaje = ex.getReason() == null ? "Solicitud inválida" : ex.getReason();
+        return ResponseEntity.status(ex.getStatusCode())
+                .body(ErrorResponse.of(status, "Error HTTP " + status, mensaje));
+    }
 
     @ExceptionHandler(RecursoNoEncontradoException.class)
     public ResponseEntity<ErrorResponse> noEncontrado(RecursoNoEncontradoException ex) {
