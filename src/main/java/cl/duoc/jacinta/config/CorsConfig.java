@@ -17,7 +17,7 @@ public class CorsConfig {
             @Value("${app.cors.allowed-origins:http://localhost:5173}") List<String> origenes) {
         CorsConfiguration cors = new CorsConfiguration();
         cors.setAllowedOrigins(origenes);
-        cors.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        cors.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         cors.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         cors.setExposedHeaders(List.of("Location"));
 
