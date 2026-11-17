@@ -1,5 +1,6 @@
 package cl.duoc.jacinta.support;
 
+import cl.duoc.jacinta.repository.BoletaRepository;
 import cl.duoc.jacinta.repository.CategoriaRepository;
 import cl.duoc.jacinta.repository.DetalleBoletaRepository;
 import cl.duoc.jacinta.repository.ProductoRepository;
@@ -29,5 +30,10 @@ public class RepositoriosDePrueba {
     @Bean
     DetalleBoletaRepository detallesBoleta() {
         return mock(DetalleBoletaRepository.class);
+    }
+
+    @Bean
+    BoletaRepository boletas() {
+        return mock(BoletaRepository.class);
     }
 }
