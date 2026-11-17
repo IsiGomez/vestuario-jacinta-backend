@@ -1,6 +1,8 @@
 package cl.duoc.jacinta.support;
 
 import cl.duoc.jacinta.repository.CategoriaRepository;
+import cl.duoc.jacinta.repository.DetalleBoletaRepository;
+import cl.duoc.jacinta.repository.ProductoRepository;
 import cl.duoc.jacinta.repository.UsuarioRepository;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -17,5 +19,15 @@ public class RepositoriosDePrueba {
     @Bean
     CategoriaRepository categorias() {
         return mock(CategoriaRepository.class);
+    }
+
+    @Bean
+    ProductoRepository productos() {
+        return mock(ProductoRepository.class);
+    }
+
+    @Bean
+    DetalleBoletaRepository detallesBoleta() {
+        return mock(DetalleBoletaRepository.class);
     }
 }

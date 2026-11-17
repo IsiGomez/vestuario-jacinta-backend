@@ -14,6 +14,11 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
 
     List<Producto> findByActivoTrue();
 
+    @Query("select p from Producto p " +
+           "where p.activo = true and p.stock <= p.stockCritico " +
+           "order by p.stock asc, p.id asc")
+    List<Producto> findCriticos();
+
     boolean existsByGeneroAndTipo(String genero, String tipo);
 
     boolean existsByGeneroAndTipoAndIdNot(String genero, String tipo, Long id);
