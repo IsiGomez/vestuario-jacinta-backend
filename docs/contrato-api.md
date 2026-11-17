@@ -43,34 +43,37 @@ ProductoRequest / ProductoResponse (la respuesta suma `id`):
 | :--- | :--- | :--- |
 | POST | `/ordenes` | Público (token opcional) → 201 |
 | GET | `/ordenes` | ADMIN, VENDEDOR |
-| GET | `/ordenes/{id}` | ADMIN, VENDEDOR; CLIENTE solo si es suya |
-| GET | `/ordenes/usuario/{usuarioId}` | ADMIN, VENDEDOR o el propio usuario |
+| GET | `/ordenes/{id}` | ADMIN, VENDEDOR; CLIENTE solo si es suya (si no, 404) |
+| GET | `/ordenes/usuario/{usuarioId}` | ADMIN, VENDEDOR o el propio usuario (si no, 403) |
 | PATCH | `/ordenes/{id}/estado` | ADMIN, VENDEDOR |
 
-POST request (sin precio, sin usuarioId, sin estado: los pone el servidor):
+### POST /ordenes
+
+El cliente NO envía precio, usuario ni estado. Los decide el servidor.
 
 ```json
 {
   "cliente": { "nombre": "Camila", "apellidos": "Rojas Pérez", "correo": "camila@mail.com" },
-  "entrega": { "calle": "Los Aromos 1234", "departamento": "", "region": "...", "comuna": "...", "indicaciones": "" },
+  "entrega": { "calle": "Los Aromos 1234", "departamento": "", "region": "Región Metropolitana", "comuna": "Providencia", "indicaciones": "" },
   "items": [{ "productoId": 1, "cantidad": 2, "talla": "M", "color": "azul" }]
 }
 ```
 
-Respuesta (OrdenResponse):
+- `color` es la clave del color (`azul`), la misma que devuelve `/productos`. `talla` y `color` son obligatorios y deben existir en el producto (si no, 400).
+- `region` y `comuna` pueden ir vacías (retiro en tienda); `calle` es obligatoria.
+- `usuarioId` sale del token si viene; si no, la orden queda sin usuario (compra como invitado). Un `usuarioId` en el cuerpo se ignora.
+- Respuesta (OrdenResponse): `id, numero, fecha, usuarioId, estado, cliente, entrega, items[{productoId, nombre, precio, cantidad, talla, color}], total`.
+- `numero` = fecha (aaaammdd) + id con 2 dígitos mínimo. `total` lo calcula el servidor.
+- Queda `PENDIENTE` con el stock reservado. El precio sale de la BD.
+- Errores: 400 validación o talla/color inexistente, 404 producto inexistente o inactivo, 409 stock insuficiente (mensaje listo para mostrar al cliente).
 
-```json
-{
-  "id": 1, "numero": "2026111501", "fecha": "2026-11-15T15:30:00",
-  "usuarioId": null, "estado": "PENDIENTE",
-  "cliente": { "...": "..." }, "entrega": { "...": "..." },
-  "items": [{ "productoId": 1, "nombre": "...", "precio": 14990, "cantidad": 2, "talla": "M", "color": "azul" }],
-  "total": 29980
-}
-```
+### PATCH /ordenes/{id}/estado
 
-- Estados: `PENDIENTE`, `PAGADA`, `PAGO_FALLIDO`.
-- Al crear, la orden queda `PENDIENTE` con el stock reservado. El precio sale de la BD.
-- `usuarioId` sale del token si viene; si no, queda `null` (compra como invitado).
-- `PATCH` body `{ "estado": "PAGADA" }`. `PAGO_FALLIDO` repone el stock. Volver a `PENDIENTE` o `PAGADA` lo reserva de nuevo.
-- Errores: 400 validación, 404 producto inexistente o inactivo, 409 stock insuficiente.
+Body `{ "estado": "PAGADA" }`. 
+
+Estados: `PENDIENTE`, `PAGADA`, `PAGO_FALLIDO`.
+
+- `PENDIENTE` y `PAGADA` tienen el stock reservado; `PAGO_FALLIDO` lo devuelve.
+- Pasar a `PAGO_FALLIDO` repone el stock. Volver a `PENDIENTE` o `PAGADA` lo reserva de nuevo (409 si ya no alcanza).
+- Entre `PENDIENTE` y `PAGADA` el stock no cambia.
+- 404 si la orden no existe.
