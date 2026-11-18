@@ -3,9 +3,6 @@
 Backend de la tienda **Vestuarios Jacinta**, desarrollado para la asignatura
 **DSY1104 – Desarrollo Fullstack II** de DuocUC.
 
-API REST para conectar el frontend React con MySQL, gestionar usuarios y categorías,
-y controlar el acceso mediante JWT.
-
 ---
 
 ## Integrantes del Equipo
@@ -19,7 +16,9 @@ y controlar el acceso mediante JWT.
 
 - [Repositorio del frontend](https://github.com/IsiGomez/vestuario-jacinta-react)
 - [Frontend en GitHub Pages](https://isigomez.github.io/vestuario-jacinta-react/)
+- [API desplegada (ejemplo: productos)](https://jacinta-backend-ceb8edg8efb5fcgg.westus-01.azurewebsites.net/api/productos)
 - [Swagger local](http://localhost:8080/swagger-ui.html)
+- [Contrato de API de productos y órdenes](docs/contrato-api.md)
 
 ## Tecnologías utilizadas
 
@@ -114,6 +113,31 @@ VITE_API_URL=http://localhost:8080/api
 Ejecuta el frontend en `http://localhost:5173`. El origen permitido se configura en
 `app.cors.allowed-origins`. Si cambias `.env`, reinicia Vite.
 
+## Despliegue
+
+El proyecto incluye un `Dockerfile` de dos etapas (compila con JDK 25 y ejecuta el JAR con
+JRE 25, puerto `8080`). En el servidor, la configuración se entrega con variables de entorno,
+que Spring Boot convierte en las propiedades de `application.properties`:
+
+| Variable | Propiedad | Para qué sirve |
+| :--- | :--- | :--- |
+| `JWT_SECRET` | `jwt.secret` | Clave de firma de los tokens (obligatoria; no la guardes en Git) |
+| `SPRING_DATASOURCE_URL` | `spring.datasource.url` | URL JDBC de la base de datos |
+| `SPRING_DATASOURCE_USERNAME` | `spring.datasource.username` | Usuario de la base |
+| `SPRING_DATASOURCE_PASSWORD` | `spring.datasource.password` | Contraseña de la base |
+| `APP_CORS_ALLOWED_ORIGINS` | `app.cors.allowed-origins` | Orígenes del frontend permitidos, separados por coma |
+| `PORT` | `server.port` | Puerto de la aplicación (por defecto `8080`) |
+
+Para el frontend publicado en GitHub Pages:
+
+```text
+APP_CORS_ALLOWED_ORIGINS=https://isigomez.github.io,http://localhost:5173
+```
+
+Usa solo el origen (sin `/vestuario-jacinta-react/` ni barra final). Si no se define,
+solo se acepta `http://localhost:5173` y el navegador bloqueará las peticiones del sitio publicado.
+Tras cambiar variables, reinicia la aplicación.
+
 ### Comandos disponibles
 
 Ejecutar desde la carpeta del backend:
@@ -147,6 +171,9 @@ entre 8 y 24 caracteres.
 vestuario-jacinta-backend/
 ├── pom.xml
 ├── mvnw / mvnw.cmd
+├── Dockerfile
+├── docs/
+│   └── contrato-api.md     # Contrato de productos y órdenes
 └── src/
     ├── main/
     │   ├── java/cl/duoc/jacinta/
@@ -179,9 +206,18 @@ las tablas y los DTOs definen lo que recibe y devuelve la API.
 - Categorías públicas; solo el administrador puede crearlas, editarlas o eliminarlas.
 - Rechazo de eliminación de categorías con productos asociados.
 - Contraseñas almacenadas con BCrypt y omitidas en las respuestas.
+- **Productos:** consulta pública de los productos activos; administrador y vendedor ven también
+  los inactivos, crean y editan; solo el administrador elimina (409 si el producto ya tiene ventas).
+  No se permiten dos productos con el mismo par `genero + tipo`.
+- **Stock crítico:** `/api/productos/criticos` lista los productos con `stock <= stockCritico`.
+- **Órdenes (boletas):** el cliente envía solo producto, cantidad, talla y color. El servidor toma
+  el precio de la base de datos, calcula el total, valida talla, color y stock (409 si no alcanza)
+  y reserva el stock. Se puede comprar como invitado o con sesión.
+- **Estados de orden:** `PENDIENTE`, `PAGADA` y `PAGO_FALLIDO`. Pasar a `PAGO_FALLIDO` devuelve el
+  stock; volver a `PENDIENTE` o `PAGADA` lo reserva de nuevo.
+- Un cliente solo puede ver sus propias órdenes; administrador y vendedor ven todas.
 
-Los modelos y repositorios de productos, boletas y detalles están preparados.
-Sus endpoints y la lógica de ventas siguen pendientes.
+El detalle de cuerpos, validaciones y errores está en [`docs/contrato-api.md`](docs/contrato-api.md).
 
 ## Endpoints principales
 
@@ -196,7 +232,17 @@ Sus endpoints y la lógica de ventas siguen pendientes.
 | PUT | `/api/usuarios/perfil` | Usuario autenticado; solo su perfil |
 | GET | `/api/categorias` y `/api/categorias/{id}` | Público |
 | POST / PUT / DELETE | `/api/categorias` y `/api/categorias/{id}` | Administrador |
+| GET | `/api/productos` y `/api/productos/{id}` | Público (solo activos; staff ve también inactivos) |
+| GET | `/api/productos/criticos` | Administrador, vendedor |
+| POST / PUT | `/api/productos` y `/api/productos/{id}` | Administrador, vendedor |
+| DELETE | `/api/productos/{id}` | Administrador |
+| POST | `/api/ordenes` | Público (el token es opcional) |
+| GET | `/api/ordenes` | Administrador, vendedor |
+| GET | `/api/ordenes/{id}` | Staff; el cliente solo si la orden es suya |
+| GET | `/api/ordenes/usuario/{usuarioId}` | Staff o el propio usuario |
+| PATCH | `/api/ordenes/{id}/estado` | Administrador, vendedor |
 
+Swagger UI está en `/swagger-ui.html` y la especificación OpenAPI en `/v3/api-docs`.
 En Swagger, realiza el login y copia `accessToken` en **Authorize**. Acceso JWT de
 dos horas y refresh de siete días, según `application.properties`.
 
@@ -206,6 +252,8 @@ dos horas y refresh de siete días, según `application.properties`.
 bash mvnw test
 ```
 
-Las pruebas verifican autenticación, permisos, validaciones, usuarios, categorías,
-CORS y Swagger con repositorios simulados, sin levantar MySQL.
+Las pruebas verifican autenticación, permisos por rol, validaciones, usuarios, categorías,
+productos, órdenes (cálculo de totales, reserva y devolución de stock), CORS y Swagger con
+repositorios simulados, sin levantar MySQL. Las clases principales son `SeguridadIntegradaTest`,
+`OrdenServiceTest` y `ProductoServiceTest`.
 El arranque y la actualización real del esquema deben comprobarse también con MySQL.
