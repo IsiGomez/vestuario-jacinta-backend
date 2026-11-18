@@ -17,7 +17,7 @@ Backend de la tienda **Vestuarios Jacinta**, desarrollado para la asignatura
 - [Repositorio del frontend](https://github.com/IsiGomez/vestuario-jacinta-react)
 - [Frontend en GitHub Pages](https://isigomez.github.io/vestuario-jacinta-react/)
 - [API desplegada (ejemplo: productos)](https://jacinta-backend-ceb8edg8efb5fcgg.westus-01.azurewebsites.net/api/productos)
-- [Swagger local](http://localhost:8080/swagger-ui.html)
+- [Swagger desplegada](https://jacinta-backend-ceb8edg8efb5fcgg.westus-01.azurewebsites.net/swagger-ui/index.html)
 - [Contrato de API de productos y órdenes](docs/contrato-api.md)
 
 ## Tecnologías utilizadas
